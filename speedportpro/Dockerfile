@@ -3,14 +3,15 @@ FROM ${BUILD_FROM}
 
 # Installiere Abhängigkeiten
 RUN apk add --no-cache \
-    curl \
-    jq \
-    mosquitto-clients \
-    bash
+        curl \
+        jq \
+        mosquitto-clients \
+        bash
 
-# Kopiere Skripte
-COPY run.sh /
-RUN chmod a+x /run.sh
+# Skripte in die richtige s6-Pfadstruktur kopieren
+COPY rootfs/ /
 
-# Startbefehl
-CMD [ "/bin/bash", "/run.sh" ]
+# Rechte korrigieren
+RUN chmod +x /etc/services.d/*/run /etc/cont-init.d/*
+
+# Kein CMD/ENTRYPOINT nötig – s6 übernimmt alles
