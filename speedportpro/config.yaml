@@ -1,5 +1,5 @@
 name: Speedport Pro
-version: "0.0.9"
+version: "0.0.10"
 slug: speedport_pro
 description: Integration für Telekom Speedport Pro Router
 url: https://github.com/SteveP86/HomeAssistant-Addons
@@ -10,6 +10,8 @@ arch:
   - armv7
   - i386
 boot: manual
+init: false
+hassio_role: admin
 host_network: true
 hassio_role: admin
 
