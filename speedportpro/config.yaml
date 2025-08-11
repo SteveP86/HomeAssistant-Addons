@@ -12,26 +12,15 @@ arch:
 boot: manual
 host_network: true
 hassio_role: admin
+
+# Standardwerte der Konfiguration
 options:
-  router_ip:
-    default: "192.168.2.1"
-    required: true
-  username:
-    default: "admin"
-    required: true
-  password:
-    default: ""
-    required: true
+  router_ip: "192.168.2.1"
+  username: "admin"
+  password: ""
+
+# Schema der Benutzer-Eingaben (nur erlaubte Typen!)
 schema:
-  type: object
-  properties:
-    router_ip:
-      type: string
-      title: Router IP-Adresse
-    username:
-      type: string
-      title: Benutzername
-    password:
-      type: string
-      title: Passwort
-      format: password
+  router_ip: str
+  username: str
+  password: password
