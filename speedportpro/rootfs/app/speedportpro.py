@@ -3,6 +3,7 @@
 Speedport Pro Status Scraper für Home-Assistant
 Liest die HTML-Statusseite des Speedport Pro aus und
 veröffentlicht die Werte via MQTT (Discovery).
+Kein Login, keine JSON-API – nur HTML-Parsing.
 """
 
 import json
@@ -70,6 +71,7 @@ def mqtt_ha_config(sensor_id: str, name: str, unit=None, dev_class=None):
 # Router-Scraper
 # --------------------------------------------------------------------------- #
 def fetch_status() -> dict:
+    """Router-Statusseite laden und relevante Werte extrahieren."""
     url = f"http://{ROUTER_HOST}/6.5/gui/status/"
     try:
         resp = requests.get(url, timeout=10)
@@ -77,34 +79,49 @@ def fetch_status() -> dict:
     except requests.RequestException as exc:
         raise RuntimeError(f"Router nicht erreichbar: {exc}") from exc
 
-    text = resp.text
+    soup = BeautifulSoup(resp.text, "lxml")
 
-    # 1. JavaScript-Block mit "fields = {" ... "};"
-    import re, json
-    m = re.search(r'fields\s*=\s*({.*?});', text, flags=re.S)
-    if not m:
-        raise RuntimeError("Kein 'fields = {...}' im HTML gefunden")
+    # Hilfsfunktion: Wert aus ng-bind extrahieren
+    def val(attr, cast=str):
+        el = soup.select_one(f'[ng-bind="fields.{attr}"]')
+        return cast(el.get_text(strip=True)) if el else None
 
-    # 2. Inhalt als JSON laden
-    fields = json.loads(m.group(1))
+    # DSL-Status (Text in Span)
+    dsl_status = "online" if soup.select_one('span[translate="status_content_online"]') else "offline"
 
-    # 3. Werte extrahieren
-    info = fields.get("statusInformation", {})
-    inet = fields.get("internet", {})
-    net  = fields.get("homeNetwork", {})
-    tel  = fields.get("telephony", {})
+    # DSL-Sync (Label + nachfolgender Wert)
+    def label_val(label_key, cast=int):
+        label = soup.select_one(f'label[translate="{label_key}"]')
+        if label:
+            val_span = label.find_next_sibling("span")
+            try:
+                return cast(val_span.get_text(strip=True))
+            except (ValueError, AttributeError):
+                return None
+        return None
+
+    # LAN-Port 1
+    lan1_el = soup.select_one('.lanPort:-soup-contains("[1]") + span')
+    lan1_speed = lan1_el.get_text(strip=True) if lan1_el else "offline"
+
+    # WLAN-Clients (Anzahl aus Array-Länge)
+    wifi_2g = int(val("homeNetwork.devicesWifi2g.length") or 0)
+    wifi_5g = int(val("homeNetwork.devicesWifi5g.length") or 0)
+
+    # DECT
+    dect = int(val("telephony.registeredTelephones") or 0)
 
     return {
-        "dsl_sync_down": inet.get("internetConnectionDownstream"),
-        "dsl_sync_up":   inet.get("internetConnectionUpstream"),
-        "dsl_status":    "online" if inet.get("dslLink") == "up" else "offline",
-        "dsl_pop":       inet.get("dslPop"),
-        "firmware":      info.get("firmwareVersion"),
-        "serial":        info.get("serialNumber"),
-        "lan1_speed":    "1 Gbit/s" if net.get("devicesAtLan", {}).get("lan1") == "up" else "offline",
-        "wifi_2g_clients": len(net.get("devicesWifi2g", [])),
-        "wifi_5g_clients": len(net.get("devicesWifi5g", [])),
-        "dect_registered": tel.get("registeredTelephones", 0),
+        "dsl_sync_down": label_val("downstream"),
+        "dsl_sync_up":   label_val("upstream"),
+        "dsl_status":    dsl_status,
+        "dsl_pop":       val("internet.dslPop"),
+        "firmware":      val("statusInformation.firmwareVersion"),
+        "serial":        val("statusInformation.serialNumber"),
+        "lan1_speed":    lan1_speed,
+        "wifi_2g_clients": wifi_2g,
+        "wifi_5g_clients": wifi_5g,
+        "dect_registered": dect,
     }
 
 
@@ -115,7 +132,7 @@ def main():
     mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
     mqtt_client.loop_start()
 
-    # Discovery anlegen
+    # Home-Assistant Discovery anlegen
     mqtt_ha_config("dsl_sync_down", "DSL Sync Down", "kbit/s")
     mqtt_ha_config("dsl_sync_up",   "DSL Sync Up",   "kbit/s")
     mqtt_ha_config("dsl_status",    "DSL Status")
@@ -131,7 +148,7 @@ def main():
         try:
             data = fetch_status()
             for key, value in data.items():
-                mqtt_publish(key, value)
+                mqtt_publish(key, value if value is not None else "Unbekannt")
         except Exception as exc:
             print("Fehler:", exc)
         time.sleep(SCAN_INT)
