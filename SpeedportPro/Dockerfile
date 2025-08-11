@@ -1,18 +1,16 @@
-ARG BUILD_FROM
-FROM $BUILD_FROM
+ARG BUILD_FROM=ghcr.io/home-assistant/${BUILD_ARCH}-base-image:latest
+FROM ${BUILD_FROM}
 
-ENV LANG C.UTF-8
-
+# Installiere Abhängigkeiten
 RUN apk add --no-cache \
-    python3 py3-pip \
-    chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont
+    curl \
+    jq \
+    mosquitto-clients \
+    bash
 
-COPY requirements.txt /tmp/
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt && \
-    playwright install chromium --with-deps
+# Kopiere Skripte
+COPY run.sh /
+RUN chmod a+x /run.sh
 
-COPY src/ /src/
-COPY run.sh /run.sh
-RUN chmod +x /run.sh
-
-CMD [ "/run.sh" ]
+# Startbefehl
+CMD [ "/bin/bash", "/run.sh" ]
