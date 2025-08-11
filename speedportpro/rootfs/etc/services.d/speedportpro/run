@@ -1,4 +1,5 @@
 #!/command/with-contenv bashio
+exec python3 -u /app/speedportpro.py
 set -euo pipefail
 
 # Warten, bis Home Assistant die Konfig-Datei erzeugt hat
