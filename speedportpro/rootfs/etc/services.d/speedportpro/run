@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv bashio
+# Dein Start-Skript
+exec /run.sh
