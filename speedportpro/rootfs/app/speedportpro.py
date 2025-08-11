@@ -70,7 +70,6 @@ def mqtt_ha_config(sensor_id: str, name: str, unit=None, dev_class=None):
 # Router-Scraper
 # --------------------------------------------------------------------------- #
 def fetch_status() -> dict:
-    """Router-Statusseite laden und relevante Werte extrahieren."""
     url = f"http://{ROUTER_HOST}/6.5/gui/status/"
     try:
         resp = requests.get(url, timeout=10)
@@ -78,50 +77,34 @@ def fetch_status() -> dict:
     except requests.RequestException as exc:
         raise RuntimeError(f"Router nicht erreichbar: {exc}") from exc
 
-    soup = BeautifulSoup(resp.text, "lxml")
+    text = resp.text
 
-    def sel(attr, cast=str):
-        el = soup.select_one(f'[ng-bind="fields.{attr}"]')
-        return cast(el.get_text(strip=True)) if el else None
+    # 1. JavaScript-Block mit "fields = {" ... "};"
+    import re, json
+    m = re.search(r'fields\s*=\s*({.*?});', text, flags=re.S)
+    if not m:
+        raise RuntimeError("Kein 'fields = {...}' im HTML gefunden")
 
-    def label_sel(txt, cast=str):
-        el = soup.select_one(f'label[translate="{txt}"] + label')
-        return cast(el.get_text(strip=True)) if el else None
+    # 2. Inhalt als JSON laden
+    fields = json.loads(m.group(1))
 
-    # DSL-Sync
-    dsl_down = label_sel("downstream", int)
-    dsl_up   = label_sel("upstream", int)
-
-    # DSL-Status
-    dsl_status = "online" if soup.select_one('span[translate="status_content_online"]') else "offline"
-
-    # Sonstiges
-    dsl_pop      = sel("internet.dslPop")
-    firmware     = sel("statusInformation.firmwareVersion")
-    serial_no    = sel("statusInformation.serialNumber")
-
-    # LAN-Port 1
-    lan1_el = soup.select_one('.lanPort:-soup-contains("[1]") + span')
-    lan1_speed = lan1_el.get_text(strip=True) if lan1_el else "offline"
-
-    # WLAN-Clients
-    wifi_2g_clients = sel("homeNetwork.devicesWifi2g.length", int) or 0
-    wifi_5g_clients = sel("homeNetwork.devicesWifi5g.length", int) or 0
-
-    # DECT
-    dect_reg = sel("telephony.registeredTelephones", int) or 0
+    # 3. Werte extrahieren
+    info = fields.get("statusInformation", {})
+    inet = fields.get("internet", {})
+    net  = fields.get("homeNetwork", {})
+    tel  = fields.get("telephony", {})
 
     return {
-        "dsl_sync_down": dsl_down,
-        "dsl_sync_up":   dsl_up,
-        "dsl_status":    dsl_status,
-        "dsl_pop":       dsl_pop,
-        "firmware":      firmware,
-        "serial":        serial_no,
-        "lan1_speed":    lan1_speed,
-        "wifi_2g_clients": wifi_2g_clients,
-        "wifi_5g_clients": wifi_5g_clients,
-        "dect_registered": dect_reg,
+        "dsl_sync_down": inet.get("internetConnectionDownstream"),
+        "dsl_sync_up":   inet.get("internetConnectionUpstream"),
+        "dsl_status":    "online" if inet.get("dslLink") == "up" else "offline",
+        "dsl_pop":       inet.get("dslPop"),
+        "firmware":      info.get("firmwareVersion"),
+        "serial":        info.get("serialNumber"),
+        "lan1_speed":    "1 Gbit/s" if net.get("devicesAtLan", {}).get("lan1") == "up" else "offline",
+        "wifi_2g_clients": len(net.get("devicesWifi2g", [])),
+        "wifi_5g_clients": len(net.get("devicesWifi5g", [])),
+        "dect_registered": tel.get("registeredTelephones", 0),
     }
 
 
