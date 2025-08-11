@@ -1,11 +1,21 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
 FROM ${BUILD_FROM}
 
-# Python-Abhängigkeiten
+# 1) Python inkl. pip nachinstallieren
 RUN apk add --no-cache \
-    gcc musl-dev libxml2-dev libxslt-dev && \
-    pip install --no-cache-dir \
-    requests paho-mqtt beautifulsoup4 lxml
+        python3 \
+        py3-pip \
+        gcc \
+        musl-dev \
+        libxml2-dev \
+        libxslt-dev
+
+# 2) Python-Abhängigkeiten
+RUN pip3 install --no-cache-dir \
+        requests \
+        paho-mqtt \
+        beautifulsoup4 \
+        lxml
 
 COPY rootfs/ /
 COPY run.sh /run.sh
