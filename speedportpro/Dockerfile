@@ -10,4 +10,6 @@ RUN apk add --no-cache \
 COPY rootfs/ /
 COPY run.sh /run.sh
 
+WORKDIR /app
+
 RUN chmod +x /run.sh /etc/services.d/speedportpro/run
