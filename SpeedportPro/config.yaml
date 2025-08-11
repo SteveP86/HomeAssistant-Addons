@@ -1,20 +1,37 @@
-name: "Speedport Pro All-in-One"
+name: Speedport Pro
 version: "0.0.1"
-slug: speedport_pro_allinone
-description: "Loggt sich im Speedport ein, liest DSL/LTE-Werte und erstellt Home-Assistant-Sensoren automatisch."
+slug: speedport_pro
+description: Integration für Telekom Speedport Pro Router
+url: https://github.com/SteveP86/HomeAssistant-Addons
 arch:
-  - armhf
-  - armv7
   - aarch64
   - amd64
-startup: services
-boot: auto
-init: false
+  - armhf
+  - armv7
+  - i386
+boot: manual
+host_network: true
+hassio_role: admin
 options:
-  router_ip: 192.168.2.1
-  router_password: ""
-  interval: 60
+  router_ip:
+    default: "192.168.2.1"
+    required: true
+  username:
+    default: "admin"
+    required: true
+  password:
+    default: ""
+    required: true
 schema:
-  router_ip: str
-  router_password: password
-  interval: int(10,300)
+  type: object
+  properties:
+    router_ip:
+      type: string
+      title: Router IP-Adresse
+    username:
+      type: string
+      title: Benutzername
+    password:
+      type: string
+      title: Passwort
+      format: password
