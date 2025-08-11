@@ -5,8 +5,7 @@ RUN apk add --no-cache \
         python3 \
         py3-requests \
         py3-paho-mqtt \
-        py3-beautifulsoup4 \
-        py3-lxml
+        py3-beautifulsoup4
 
 COPY rootfs/ /
 COPY run.sh /run.sh
