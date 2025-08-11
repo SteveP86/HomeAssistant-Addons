@@ -79,7 +79,7 @@ def fetch_status() -> dict:
     except requests.RequestException as exc:
         raise RuntimeError(f"Router nicht erreichbar: {exc}") from exc
 
-    soup = BeautifulSoup(resp.text, "lxml")
+    soup = BeautifulSoup(resp.text, "html.parser")
 
     # Hilfsfunktion: Wert aus ng-bind extrahieren
     def val(attr, cast=str):
