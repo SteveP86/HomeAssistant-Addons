@@ -1,3 +1,11 @@
-#!/usr/bin/with-contenv bashio
+#!/command/with-contenv bashio
+set -euo pipefail
+
+# Warten, bis Home Assistant die Konfig-Datei erzeugt hat
+CONFIG="/data/options.json"
+while [ ! -f "$CONFIG" ]; do
+    bashio::log.info "Warte auf $CONFIG …"
+    sleep 2
+done
 # Dein Start-Skript
 exec /run.sh
