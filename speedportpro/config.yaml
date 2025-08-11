@@ -1,28 +1,30 @@
-name: Speedport Pro
-version: "0.0.13"
-slug: speedport_pro
-description: Integration für Telekom Speedport Pro Router
-url: https://github.com/SteveP86/HomeAssistant-Addons
+name: "Speedport Pro"
+version: "0.0.14"
+slug: "speedportpro"
+description: "Speedport Pro Status-Integration"
 arch:
-  - aarch64
   - amd64
-  - armhf
+  - aarch64
   - armv7
-  - i386
-boot: manual
+startup: services
+boot: auto
 init: false
-hassio_role: admin
-host_network: true
-hassio_role: admin
-
-# Standardwerte der Konfiguration
+hassio_api: true
+hassio_role: default
 options:
-  router_ip: "192.168.2.1"
-  username: "admin"
-  password: ""
-
-# Schema der Benutzer-Eingaben (nur erlaubte Typen!)
+  router_host: "192.168.2.1"
+  scan_interval: 30
+  mqtt_host: "localhost"
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_pass: ""
+  mqtt_topic_prefix: "speedport"
 schema:
-  router_ip: str
-  username: str
-  password: password
+  router_host: str
+  scan_interval: int(10,300)
+  mqtt_host: str
+  mqtt_port: int(1,65535)
+  mqtt_user: str?
+  mqtt_pass: password?
+  mqtt_topic_prefix: str
+ports: {}
