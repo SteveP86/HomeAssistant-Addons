@@ -1,17 +1,17 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
 FROM ${BUILD_FROM}
 
-# Installiere Abhängigkeiten
+# Abhängigkeiten
 RUN apk add --no-cache \
         curl \
         jq \
         mosquitto-clients \
         bash
 
-# Skripte in die richtige s6-Pfadstruktur kopieren
+# Deine Start-Skripte kopieren
 COPY rootfs/ /
 
-# Rechte korrigieren
-RUN chmod +x /etc/services.d/*/run /etc/cont-init.d/*
+# Rechte nur für vorhandene Skripte setzen
+RUN chmod +x /etc/services.d/*/run
 
-# Kein CMD/ENTRYPOINT nötig – s6 übernimmt alles
+# Kein CMD/ENTRYPOINT – s6 startet automatisch
