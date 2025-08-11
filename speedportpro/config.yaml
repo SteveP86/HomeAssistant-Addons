@@ -1,5 +1,5 @@
 name: "Speedport Pro"
-version: "0.0.14"
+version: "0.0.15"
 slug: "speedportpro"
 description: "Speedport Pro Status-Integration"
 arch:
@@ -14,7 +14,7 @@ hassio_role: default
 options:
   router_host: "192.168.2.1"
   scan_interval: 30
-  mqtt_host: "localhost"
+  mqtt_host: "core-mosquitto"
   mqtt_port: 1883
   mqtt_user: ""
   mqtt_pass: ""
