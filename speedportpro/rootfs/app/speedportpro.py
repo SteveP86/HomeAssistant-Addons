@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
 Speedport Pro Status Scraper für Home-Assistant
-Liest die HTML-Statusseite des Speedport Pro aus und
-veröffentlicht die Werte via MQTT (Discovery).
-Kein Login, keine JSON-API – nur HTML-Parsing.
+Liest die HTML-Statusseite und (neu) das Modell via XMO-Schnittstelle aus.
+Veröffentlicht die Werte via MQTT (Discovery).
 """
 
 import json
@@ -12,6 +11,7 @@ import time
 import requests
 import paho.mqtt.client as mqtt
 from bs4 import BeautifulSoup
+import xml.etree.ElementTree as ET   # Neu für XMO-Abruf
 
 # --------------------------------------------------------------------------- #
 # Konfiguration aus Home-Assistant-Add-on
@@ -70,6 +70,20 @@ def mqtt_ha_config(sensor_id: str, name: str, unit=None, dev_class=None):
 # --------------------------------------------------------------------------- #
 # Router-Scraper
 # --------------------------------------------------------------------------- #
+def fetch_model_xmo() -> str | None:
+    """
+    Fragt den Modellnamen über die XMO-Schnittstelle ab.
+    Keine Authentifizierung nötig.
+    """
+    url = f"http://{ROUTER_HOST}/data/ModelName"
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        return ET.fromstring(resp.text).text
+    except Exception:
+        return None
+
+
 def fetch_status() -> dict:
     """Router-Statusseite laden und relevante Werte extrahieren."""
     url = f"http://{ROUTER_HOST}/6.5/gui/status/"
@@ -122,6 +136,7 @@ def fetch_status() -> dict:
         "wifi_2g_clients": wifi_2g,
         "wifi_5g_clients": wifi_5g,
         "dect_registered": dect,
+        "model":         fetch_model_xmo(),   # <-- NEU
     }
 
 
@@ -143,6 +158,7 @@ def main():
     mqtt_ha_config("wifi_2g_clients", "2.4 GHz Clients")
     mqtt_ha_config("wifi_5g_clients", "5 GHz Clients")
     mqtt_ha_config("dect_registered", "DECT Registered")
+    mqtt_ha_config("model",         "Modellname")   # <-- NEU
 
     while True:
         try:
